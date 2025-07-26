@@ -7,10 +7,11 @@ import { CartItemEntity } from '../../models/cart-item.entity';
 import { ProductEntity } from '../../models/product.entity';
 import { MinioService } from '../../common/bases/minio.service';
 import { ImageEntity } from '../../models/image.entity';
+import { UserEntity } from '../../models/user.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CartEntity, CartItemEntity, ProductEntity, ImageEntity])], 
+  imports: [TypeOrmModule.forFeature([CartEntity, CartItemEntity, ProductEntity, ImageEntity, UserEntity])], 
   controllers: [CartController],
-  providers: [CartService, MinioService],
+  providers: [CartService],
 })
 export class CartModule {}

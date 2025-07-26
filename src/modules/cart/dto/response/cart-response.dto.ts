@@ -1,4 +1,3 @@
-import { skip } from 'rxjs';
 export interface CartProductResponse {
   id: number;
   title: string;

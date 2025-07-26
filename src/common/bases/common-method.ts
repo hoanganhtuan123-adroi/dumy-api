@@ -43,7 +43,7 @@ export default class CommonMethods {
             CommonMethods.generateKeyImage(image, minioService),
           ),
         );
-        return [parseInt(productId), urls || ''] as [number, string]; 
+        return [parseInt(productId), urls || ''] as [number, string];
       },
     );
 
@@ -57,5 +57,55 @@ export default class CommonMethods {
       },
       {} as Record<number, string>,
     );
+  }
+
+  static async getProductThumbnails(
+    productIds: number[],
+    imageRepository: Repository<ImageEntity>,
+  ): Promise<Record<number, string>> {
+    if (productIds.length === 0) return {};
+
+    const allImages = await imageRepository.findBy({
+      imageable_id: In(productIds),
+      imageable_type: 'product',
+    });
+
+    const firstImageByProduct = allImages.reduce(
+      (acc, image) => {
+        if (!acc[image.imageable_id]) {
+          acc[image.imageable_id] = image.url; // chỉ lấy ảnh đầu
+        }
+        return acc;
+      },
+      {} as Record<number, string>,
+    );
+
+
+    return firstImageByProduct;
+  }
+
+  static async getAllProductImages(
+    productIds: number[],
+    imageRepository: Repository<ImageEntity>,
+  ): Promise<Record<number, string[]>> {
+    if (productIds.length === 0) return {};
+
+    const allImages = await imageRepository.findBy({
+      imageable_id: In(productIds),
+      imageable_type: 'product',
+    });
+
+    const imagesByProduct = allImages.reduce(
+      (acc, image) => {
+        if (!acc[image.imageable_id]) {
+          acc[image.imageable_id] = [];
+        }
+        acc[image.imageable_id].push(image.url);
+        return acc;
+      },
+      {} as Record<number, string[]>,
+    );
+
+    return imagesByProduct;
   }
 }

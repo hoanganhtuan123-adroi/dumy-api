@@ -10,7 +10,7 @@ import { ApiResponse } from '../common/bases/api.response';
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: any, host: ArgumentsHost) {
-    console.log('Global exception call....');
+    console.log('Global exception call....', exception);
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     let status: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR; // 500 default

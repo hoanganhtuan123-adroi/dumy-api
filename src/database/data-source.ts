@@ -10,12 +10,21 @@ import { CartEntity } from '../models/cart.entity';
 import { CartItemEntity } from '../models/cart-item.entity';
 export const AppDataSource = new DataSource({
   type: 'mysql',
-  host: 'localhost',
-  port: 3306,
-  username: 'root',
-  password: '123456',
-  database: 'nestjs_onsite',
-  entities: [UserEntity, TokenEntity, ImageEntity,CategoryEntity, ProductEntity, ReviewEntity, CartEntity, CartItemEntity],
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT),
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME, 
+  entities: [
+    UserEntity,
+    TokenEntity,
+    ImageEntity,
+    CategoryEntity,
+    ProductEntity,
+    ReviewEntity,
+    CartEntity,
+    CartItemEntity,
+  ],
   migrations: ['./src/migrations/*.ts'], // đường dẫn tới migrations
   synchronize: false,
 });
