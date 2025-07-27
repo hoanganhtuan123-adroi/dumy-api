@@ -8,13 +8,14 @@ import {
 import { validate, ValidationError } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { ApiResponse } from '../bases/api.response';
+import 'reflect-metadata';
 @Injectable()
 export class ValidationPipe implements PipeTransform<any> {
   async transform(value: any, { metatype }: ArgumentMetadata) {
     if (!metatype || !this.toValidate(metatype)) {
       return value;
     }
-     if (value === undefined || value === null) {
+    if (value === undefined || value === null) {
       throw new HttpException(
         ApiResponse.message(
           'Request body is empty or invalid',
@@ -24,7 +25,10 @@ export class ValidationPipe implements PipeTransform<any> {
       );
     }
 
-    const object = plainToInstance(metatype, value, {enableImplicitConversion: true});
+    const object = plainToInstance(metatype, value, {
+      enableImplicitConversion: true,
+    });
+
     const errors = await validate(object);
     const formatErrors = this.formatError(errors);
 

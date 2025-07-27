@@ -2,7 +2,6 @@ import 'reflect-metadata';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DatabaseModule } from './database/database.module';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -18,16 +17,19 @@ import { ReviewModule } from './modules/review/review.module';
 import { CartEntity } from './models/cart.entity';
 import { CartItemEntity } from './models/cart-item.entity';
 import { CartModule } from './modules/cart/cart.module';
+import { TodoModule } from './modules/todo/todo.module';
+import * as dotenv from 'dotenv';
+import { TodoEntity } from './models/todo.entity';
+dotenv.config();
 @Module({
   imports: [
-    DatabaseModule,
     UserModule,
     AuthModule,
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.DB_HOST,
       port: Number(process.env.DB_PORT),
-      username: process.env.DB_USERNAME,
+      username: process.env.DB_USERNAME || 'root',
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       entities: [
@@ -39,6 +41,7 @@ import { CartModule } from './modules/cart/cart.module';
         ReviewEntity,
         CartEntity,
         CartItemEntity,
+        TodoEntity
       ],
       synchronize: false,
     }),
@@ -49,6 +52,7 @@ import { CartModule } from './modules/cart/cart.module';
     ProductModule,
     ReviewModule,
     CartModule,
+    TodoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -2,11 +2,13 @@ import {
   Column,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { TokenEntity } from './token.entity';
 import { CartEntity } from './cart.entity';
+import { TodoEntity } from './todo.entity';
 
 @Entity({ name: 'users' })
 export class UserEntity {
@@ -15,6 +17,9 @@ export class UserEntity {
 
   @OneToOne(() => TokenEntity, (token) => token.user)
   token: TokenEntity;
+
+  @OneToMany(()=>TodoEntity, todo => todo.user )
+  todo: TodoEntity
 
   @Column({ name: 'first_name' })
   firstName: string;

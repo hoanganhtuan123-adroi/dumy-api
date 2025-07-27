@@ -8,12 +8,15 @@ import { ProductEntity } from '../models/product.entity';
 import { CategoryEntity } from '../models/category.entity';
 import { CartEntity } from '../models/cart.entity';
 import { CartItemEntity } from '../models/cart-item.entity';
+import * as dotenv from 'dotenv';
+import { TodoEntity } from '../models/todo.entity';
+dotenv.config();
 export const AppDataSource = new DataSource({
   type: 'mysql',
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT),
-  username: process.env.DB_USERNAME,
-  password: process.env.DB_PASSWORD,
+  username: process.env.DB_USERNAME || 'root',
+  password: process.env.DB_PASSWORD || '123456',
   database: process.env.DB_NAME, 
   entities: [
     UserEntity,
@@ -24,6 +27,7 @@ export const AppDataSource = new DataSource({
     ReviewEntity,
     CartEntity,
     CartItemEntity,
+    TodoEntity
   ],
   migrations: ['./src/migrations/*.ts'], // đường dẫn tới migrations
   synchronize: false,

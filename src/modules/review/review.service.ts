@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ReviewEntity } from '../../models/review.entity';
 import { Repository } from 'typeorm';
@@ -19,7 +19,7 @@ export class ReviewService {
       where: { id: reviewDto.productID },
     });
     if (!product) {
-      throw new Error('Product not found');
+      throw new NotFoundException('Product not found');
     }
 
     const review = this.reviewRepository.create({
