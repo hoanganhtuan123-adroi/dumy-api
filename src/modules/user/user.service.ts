@@ -12,7 +12,10 @@ import { MinioService } from '../../common/bases/minio.service';
 import { ImageEntity } from '../../models/image.entity';
 import { ICreateResponse } from './dto/response/create-response';
 import { UpdateUserDto } from './dto/request/update-user.dto';
-import { IFilterUsersResponse, IGetUserResponse } from './dto/response/get-user-response';
+import {
+  IFilterUsersResponse,
+  IGetUserResponse,
+} from './dto/response/get-user-response';
 @Injectable()
 export class UserService {
   constructor(
@@ -275,9 +278,12 @@ export class UserService {
                 image.filename,
               );
             } catch (imageError) {
-              console.error(`Failed to get presigned URL for user ID ${user.id}:`, imageError.message);
+              console.error(
+                `Failed to get presigned URL for user ID ${user.id}:`,
+                imageError.message,
+              );
             }
-          } 
+          }
           return {
             id: user.id,
             firstName: user.firstName,
@@ -287,7 +293,7 @@ export class UserService {
             email: user.email,
             phone: user.phone,
             password: user.password,
-            birthDate: user.birthDate.toString(), 
+            birthDate: user.birthDate.toString(),
             height: user.height,
             weight: user.weight,
             eyeColor: user.eyeColor,
@@ -311,13 +317,17 @@ export class UserService {
         limit,
         users: usersWithImages,
       };
-
-     
     } catch (error) {
       if (error instanceof QueryFailedError) {
         throw new BadRequestException(error.message);
       }
       throw new InternalServerErrorException('An unknown error occurred!');
     }
+  }
+
+  async findUserById(userId: number): Promise<IGetUserResponse> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found!');
+    return { ...user, birthDate: user.birthDate.toString() };
   }
 }

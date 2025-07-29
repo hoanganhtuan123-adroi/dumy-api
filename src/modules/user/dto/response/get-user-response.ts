@@ -20,7 +20,7 @@ export interface IGetUserResponse {
   address_lat: number;
   address_lng: number;
   address_country: string;
-  image: string;
+  image?: string;
 }
 
 

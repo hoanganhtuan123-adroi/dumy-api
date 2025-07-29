@@ -5,14 +5,14 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TodoEntity } from '../../models/todo.entity';
-import { Not, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { AddTodoRequestDto } from './dto/request/add-todo-request.dto';
-import { UserEntity } from '../../models/user.entity';
 import { UpdateTodoRequestDto } from './dto/request/update-todo-request.dto';
 import {
   GetAllTodoResponseDto,
   TodoResponseDto,
 } from './dto/response/get-todo-response.dto';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class TodoService {
@@ -20,17 +20,14 @@ export class TodoService {
     @InjectRepository(TodoEntity)
     private readonly todoRepository: Repository<TodoEntity>,
 
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
+    private readonly userService: UserService,
   ) {}
 
   async addNewTodo(
     addTodoRequest: AddTodoRequestDto,
     userId: number,
   ): Promise<void> {
-    const isUserExists = await this.userRepository.findOneBy({
-      id: userId,
-    });
+    const isUserExists = await this.userService.findUserById(userId);
     if (!isUserExists) {
       throw new NotFoundException('User not found!');
     }
@@ -56,9 +53,7 @@ export class TodoService {
     if (userId !== isTodoExists.user.id)
       throw new UnauthorizedException('This todo is not yours');
     if (!isTodoExists) throw new NotFoundException('Todo does not exist!');
-    const isUserExists = await this.userRepository.findOneBy({
-      id: userId,
-    });
+    const isUserExists = await this.userService.findUserById(userId);
     if (!isUserExists) throw new NotFoundException('User not found!');
     isTodoExists.name = updateTodoRequest.name;
     isTodoExists.completed = updateTodoRequest.completed ?? false;
@@ -107,7 +102,7 @@ export class TodoService {
     limit: number,
     skip: number,
   ): Promise<GetAllTodoResponseDto> {
-    const user = await this.userRepository.findOneBy({ id: userId });
+    const user = await this.userService.findUserById(userId)
     if (!user) throw new NotFoundException('User not found');
 
     const [todos, total] = await this.todoRepository.findAndCount({
@@ -171,17 +166,15 @@ export class TodoService {
       queryBuilder.take(limit);
       const todos = await queryBuilder.getMany();
       return this.mapTodoResponse(todos);
-    }
-    else {
+    } else {
       queryBuilder.take(1);
       const todo = await queryBuilder.getOne();
-      if(!todo) throw new NotFoundException("No data about todo")
+      if (!todo) throw new NotFoundException('No data about todo');
       return this.mapSingleTodoResponse(todo);
     }
-   
   }
 
-  private mapTodoResponse(todos: TodoEntity[]) : TodoResponseDto[] {
+  private mapTodoResponse(todos: TodoEntity[]): TodoResponseDto[] {
     return todos.map((todo: any) => ({
       id: todo.id,
       name: todo.name,
@@ -195,7 +188,7 @@ export class TodoService {
       id: todo.id,
       name: todo.name,
       completed: todo.completed,
-      userId: todo.user.id, 
+      userId: todo.user.id,
     };
   }
 }

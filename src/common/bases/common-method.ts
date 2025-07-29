@@ -2,6 +2,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ImageEntity } from '../../models/image.entity';
 import { MinioService } from './minio.service';
 import { In, Repository } from 'typeorm';
+import { UploadRequestDto } from '../../modules/image/dto/upload-request.dto';
 
 export default class CommonMethods {
   static async generateKeyImage(
@@ -80,7 +81,6 @@ export default class CommonMethods {
       {} as Record<number, string>,
     );
 
-
     return firstImageByProduct;
   }
 
@@ -107,5 +107,14 @@ export default class CommonMethods {
     );
 
     return imagesByProduct;
+  }
+
+  static mapToImageRequest(id: number, type: string): UploadRequestDto {
+    return {
+      imageable_id: id,
+      imageable_type: type,
+      url: '',
+      filename: '',
+    };
   }
 }
