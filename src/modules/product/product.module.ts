@@ -1,16 +1,16 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { ProductController } from './product.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductEntity } from '../../models/product.entity';
-import { ReviewEntity } from '../../models/review.entity';
-import { ImageEntity } from '../../models/image.entity';
-import { MinioService } from '../../common/bases/minio.service';
-import { CategoryEntity } from '../../models/category.entity';
+import { ImageModule } from '../image/image.module';
+import { CategoryModule } from '../category/category.module';
+import { ReviewModule } from '../review/review.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ProductEntity, ReviewEntity, ImageEntity, CategoryEntity])],
+  imports: [TypeOrmModule.forFeature([ProductEntity]), ImageModule, CategoryModule, forwardRef(() => ReviewModule),],
   controllers: [ProductController],
-  providers: [ProductService, MinioService],
+  providers: [ProductService],
+  exports: [ProductService]
 })
 export class ProductModule {}

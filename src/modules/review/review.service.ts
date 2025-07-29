@@ -1,26 +1,30 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ReviewEntity } from '../../models/review.entity';
 import { Repository } from 'typeorm';
 import { ReviewRequestDto } from './dto/request/review-request.dto';
 import { ProductEntity } from '../../models/product.entity';
+import { ProductService } from '../product/product.service';
 
 @Injectable()
 export class ReviewService {
   constructor(
     @InjectRepository(ReviewEntity)
     private readonly reviewRepository: Repository<ReviewEntity>,
-    @InjectRepository(ProductEntity)
-    private readonly productRepository: Repository<ProductEntity>,
+
+    @Inject(forwardRef(() => ProductService))
+    private readonly productService: ProductService,
   ) {}
 
   async addReview(reviewDto: ReviewRequestDto) {
-    const product = await this.productRepository.findOne({
-      where: { id: reviewDto.productID },
-    });
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
+    const product = await this.productService.findProductById(
+      reviewDto.productID,
+    );
 
     const review = this.reviewRepository.create({
       comment: reviewDto.comment,
@@ -32,5 +36,9 @@ export class ReviewService {
     });
 
     return this.reviewRepository.save(review);
+  }
+
+  async deleteReviewByProduct(product: ProductEntity) {
+    await this.reviewRepository.delete({ product: product });
   }
 }

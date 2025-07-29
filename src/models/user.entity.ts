@@ -2,6 +2,7 @@ import {
   Column,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -9,6 +10,7 @@ import {
 import { TokenEntity } from './token.entity';
 import { CartEntity } from './cart.entity';
 import { TodoEntity } from './todo.entity';
+import { RecipeEntity } from './recipe.entity';
 
 @Entity({ name: 'users' })
 export class UserEntity {
@@ -21,6 +23,9 @@ export class UserEntity {
   @OneToMany(()=>TodoEntity, todo => todo.user )
   todo: TodoEntity
 
+  @OneToMany(()=>RecipeEntity, recipe => recipe.user)
+  recipe: RecipeEntity;
+  
   @Column({ name: 'first_name' })
   firstName: string;
 

@@ -10,6 +10,7 @@ import { CartEntity } from '../models/cart.entity';
 import { CartItemEntity } from '../models/cart-item.entity';
 import * as dotenv from 'dotenv';
 import { TodoEntity } from '../models/todo.entity';
+import { RecipeEntity } from '../models/recipe.entity';
 dotenv.config();
 export const AppDataSource = new DataSource({
   type: 'mysql',
@@ -27,7 +28,8 @@ export const AppDataSource = new DataSource({
     ReviewEntity,
     CartEntity,
     CartItemEntity,
-    TodoEntity
+    TodoEntity,
+    RecipeEntity
   ],
   migrations: ['./src/migrations/*.ts'], // đường dẫn tới migrations
   synchronize: false,

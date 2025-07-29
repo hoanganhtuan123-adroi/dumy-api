@@ -21,7 +21,7 @@ import path = require('path');
 import { ApiResponse } from '../../common/bases/api.response';
 import { AuthGuard } from '@nestjs/passport';
 import { UpdateProductDto } from './dto/request/update-product.dto';
-import { skip } from 'rxjs';
+
 
 @Controller('products')
 export class ProductController {
@@ -190,12 +190,14 @@ export class ProductController {
     );
   }
 
+  @UseGuards(AuthGuard('jwt-admin'))
   @Delete(':id')
   async deleteProduct(@Param('id') id: string): Promise<ApiResponse> {
     await this.productService.deleteProduct(parseInt(id));
     return ApiResponse.message('Product deleted successfully', HttpStatus.OK);
   }
 
+  @UseGuards(AuthGuard('jwt-admin'))
   @Patch(':id')
   @UseInterceptors(
     FilesInterceptor('images', 10, {

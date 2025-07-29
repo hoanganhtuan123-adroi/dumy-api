@@ -1,6 +1,12 @@
-import { MinioService } from './../../common/bases/minio.service';
-import { BadRequestException, Injectable, UploadedFiles } from '@nestjs/common';
-import { In, Repository } from 'typeorm';
+import { ReviewService } from './../review/review.service';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Repository } from 'typeorm';
 import { ProductEntity } from '../../models/product.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ReviewEntity } from '../../models/review.entity';
@@ -11,27 +17,23 @@ import {
   ProductResponse,
 } from './dto/response/get-product-dto';
 import CommonMethods from '../../common/bases/common-method';
-import { CategoryEntity } from '../../models/category.entity';
-import { ICategoryResponse } from './dto/response/get-categories.response';
 import { UpdateProductDto } from './dto/request/update-product.dto';
 import { Review } from '../review/dto/response/review-response.dto';
+import { ImageService } from '../image/image.service';
+import { UploadRequestDto } from '../image/dto/upload-request.dto';
+import { CategoryService } from '../category/category.service';
 
 @Injectable()
 export class ProductService {
   constructor(
     @InjectRepository(ProductEntity)
     private readonly productRepository: Repository<ProductEntity>,
+    @Inject(forwardRef(()=> ReviewService))
+    private readonly reviewService: ReviewService,
 
-    @InjectRepository(ReviewEntity)
-    private readonly reviewRepository: Repository<ReviewEntity>,
+    private readonly imageService: ImageService,
 
-    @InjectRepository(ImageEntity)
-    private readonly imageRepository: Repository<ImageEntity>,
-
-    @InjectRepository(CategoryEntity)
-    private readonly categoryRepository: Repository<CategoryEntity>,
-
-    private readonly minioService: MinioService,
+    private readonly categoryService: CategoryService,
   ) {}
 
   async create(
@@ -51,18 +53,8 @@ export class ProductService {
 
       const { category: categoryName, ...productData } = createProductDto;
 
-      let category = await this.categoryRepository.findOne({
-        where: { name: categoryName },
-      });
-
-      if (!category) {
-        category = this.categoryRepository.create({
-          name: categoryName,
-          slug: categoryName.replace(' ', '-').toLocaleLowerCase(),
-          url: `/products/category/${categoryName.replace(' ', '-').toLocaleLowerCase()},`,
-        });
-        await this.categoryRepository.save(category);
-      }
+      const category =
+        await this.categoryService.findCategoryByName(categoryName);
 
       const product = await this.productRepository.save({
         ...productData,
@@ -72,19 +64,9 @@ export class ProductService {
       const filesReceived = Array.isArray(files) ? files : [files];
 
       filesReceived.map(async (file: any) => {
-        const resultMinio = await this.minioService.uploadFile(
-          file,
-          process.env.BUCKET_NAME,
-          file.originalname,
-        );
-
-        const image = new ImageEntity();
-        image.url = resultMinio.url;
-        image.filename = file.originalname;
-        image.imageable_id = product.id;
-        image.imageable_type = 'product';
-
-        await this.imageRepository.save(image);
+        const uploadRequestDto: UploadRequestDto =
+          CommonMethods.mapToImageRequest(product.id, 'product');
+        await this.imageService.uploadImage(uploadRequestDto, file);
       });
     } catch (error) {
       throw error;
@@ -98,45 +80,9 @@ export class ProductService {
       relations: ['category', 'reviews'],
     });
 
-    const productIds = listProducts.map((p) => p.id);
-    const allImages = await this.imageRepository.findBy({
-      imageable_id: In(productIds),
-      imageable_type: 'product',
-    });
-
-    const imagesByProduct = allImages.reduce((acc, image) => {
-      if (!acc[image.imageable_id]) {
-        acc[image.imageable_id] = [];
-      }
-      acc[image.imageable_id].push(image);
-      return acc;
-    }, {});
-
-    const productsWithImages = await Promise.all(
-      listProducts.map(async (product) => {
-        const productImages = imagesByProduct[product.id] || [];
-        const imageUrl = await Promise.all(
-          productImages.map((image: any) =>
-            CommonMethods.generateKeyImage(image, this.minioService),
-          ),
-        );
-
-        const reviews: Review[] = (product.reviews || []).map((r) => ({
-          id: r.id,
-          comment: r.comment,
-          rating: r.rating,
-          date: r.date,
-          reviewer_name: r.reviewer_name,
-          reviewer_email: r.reviewer_email,
-        }));
-
-        return {
-          ...product,
-          category: product?.category?.name,
-          image: imageUrl,
-          reviews: reviews,
-        };
-      }),
+    const productsWithImages = await this.mapProductsToResponse(
+      listProducts,
+      true,
     );
 
     return {
@@ -161,36 +107,9 @@ export class ProductService {
       .take(limit)
       .getManyAndCount();
 
-    const productIds = listProducts.map((p) => p.id);
-    const allImages = await this.imageRepository.findBy({
-      imageable_id: In(productIds),
-      imageable_type: 'product',
-    });
-
-    const imagesByProduct = allImages.reduce((acc, image) => {
-      if (!acc[image.imageable_id]) {
-        acc[image.imageable_id] = [];
-      }
-      acc[image.imageable_id].push(image);
-      return acc;
-    }, {});
-
-    const productsWithImages = await Promise.all(
-      listProducts.map(async (product) => {
-        const productImages = imagesByProduct[product.id] || [];
-        const imageUrl = await Promise.all(
-          productImages.map((image) =>
-            CommonMethods.generateKeyImage(image, this.minioService),
-          ),
-        );
-
-        return {
-          ...product,
-          category: product?.category?.name,
-          image: imageUrl,
-          reviews: [],
-        };
-      }),
+    const productsWithImages = await this.mapProductsToResponse(
+      listProducts,
+      true,
     );
 
     return {
@@ -206,52 +125,21 @@ export class ProductService {
       where: { id: id },
       relations: ['category'],
     });
-
     if (!product) {
       throw new BadRequestException('Product not found');
     }
-
-    const images = await this.imageRepository.findBy({
-      imageable_id: product.id,
-      imageable_type: 'product',
-    });
-
-    const listImages = await Promise.all(
-      images.map((image) => {
-        const urlImage = CommonMethods.generateKeyImage(
-          image,
-          this.minioService,
-        );
-        return urlImage;
-      }),
-    );
-    const reviews = [];
-
-    return {
-      ...product,
-      category: product?.category?.name,
-      image: listImages,
-      reviews: reviews,
-    };
+    const mappedProducts = await this.mapProductsToResponse([product], true);
+    return mappedProducts[0];
   }
 
-  async getAllCategories(): Promise<ICategoryResponse[]> {
-    const categories = await this.categoryRepository.find();
-    console.log(categories);
-    return categories.map((category) => ({
-      id: category.id,
-      slug: category.slug,
-      name: category.name,
-      url: category.url,
-    }));
+  async getAllCategories() {
+    const categories = await this.categoryService.getAllCategories();
+    return categories;
   }
 
   async getListCategories(): Promise<string[]> {
-    const categories = await this.categoryRepository
-      .createQueryBuilder('category')
-      .select(['category.slug'])
-      .getMany();
-    return categories.map((category) => category.slug);
+    const categories = await this.categoryService.getListCategories();
+    return categories;
   }
 
   async getProductsByCategory(
@@ -266,35 +154,8 @@ export class ProductService {
       .skip(skip)
       .take(limit)
       .getManyAndCount();
-    const productIds = products.map((p) => p.id);
-    const allImages = await this.imageRepository.findBy({
-      imageable_id: In(productIds),
-      imageable_type: 'product',
-    });
-    const imagesByProduct = allImages.reduce((acc, image) => {
-      if (!acc[image.imageable_id]) {
-        acc[image.imageable_id] = [];
-      }
-      acc[image.imageable_id].push(image);
-      return acc;
-    }, {});
-    const productsWithImages = await Promise.all(
-      products.map(async (product) => {
-        const productImages = imagesByProduct[product.id] || [];
-        const imageUrl = await Promise.all(
-          productImages.map((image) =>
-            CommonMethods.generateKeyImage(image, this.minioService),
-          ),
-        );
 
-        return {
-          ...product,
-          category: product?.category?.name,
-          image: imageUrl,
-          reviews: [],
-        };
-      }),
-    );
+    const productsWithImages = await this.mapProductsToResponse(products, true);
 
     return {
       total,
@@ -313,23 +174,9 @@ export class ProductService {
       throw new BadRequestException('Product not found');
     }
 
-    const images = await this.imageRepository.findBy({
-      imageable_id: id,
-      imageable_type: 'product',
-    });
+    await this.imageService.deleteImage(id, 'product');
 
-    for (const image of images) {
-      await this.minioService.deleteFile(
-        process.env.BUCKET_NAME,
-        image.filename,
-      );
-    }
-
-    await this.imageRepository.delete({
-      imageable_id: id,
-      imageable_type: 'product',
-    });
-    await this.reviewRepository.delete({ product: product });
+    await this.reviewService.deleteReviewByProduct(product);
 
     await this.productRepository.delete(id);
   }
@@ -346,98 +193,11 @@ export class ProductService {
 
     const { category: categoryName, ...productData } = updateProductDto;
 
-    let category = await this.categoryRepository.findOne({
-      where: { name: categoryName },
-    });
+    const category =
+      await this.categoryService.findCategoryByName(categoryName);
 
-    if (!category) {
-      const slug = categoryName
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9-]/g, '');
-
-      category = this.categoryRepository.create({
-        name: categoryName,
-        slug,
-        url: `/products/category/${slug}`,
-      });
-      await this.categoryRepository.save(category);
-    }
-
-    if (files?.length > 0) {
-      const filesArray = Array.isArray(files) ? files : [files];
-      const existingImages = await this.imageRepository.findBy({
-        imageable_id: id,
-        imageable_type: 'product',
-      });
-
-      if (filesArray.length === 1) {
-        const file = filesArray[0];
-        const uploadResult = await this.minioService.uploadFile(
-          file,
-          process.env.BUCKET_NAME,
-          file.originalname,
-        );
-
-        const imageData = {
-          url: uploadResult.url,
-          filename: file.originalname,
-          imageable_id: id,
-          imageable_type: 'product',
-        };
-
-        if (existingImages.length > 0) {
-          await this.imageRepository.update(existingImages[0].id, imageData);
-
-          if (existingImages.length > 1) {
-            const deletePromises = existingImages
-              .slice(1)
-              .map(async (image) => {
-                await Promise.all([
-                  this.minioService.deleteFile(
-                    process.env.BUCKET_NAME,
-                    image.filename,
-                  ),
-                  this.imageRepository.delete(image.id),
-                ]);
-              });
-            await Promise.all(deletePromises);
-          }
-        } else {
-          await this.imageRepository.save(imageData);
-        }
-      } else {
-        if (existingImages.length > 0) {
-          const deletePromises = existingImages.map(async (image) => {
-            await Promise.all([
-              this.minioService.deleteFile(
-                process.env.BUCKET_NAME,
-                image.filename,
-              ),
-              this.imageRepository.delete(image.id),
-            ]);
-          });
-          await Promise.all(deletePromises);
-        }
-
-        const uploadPromises = filesArray.map(async (file) => {
-          const uploadResult = await this.minioService.uploadFile(
-            file,
-            process.env.BUCKET_NAME,
-            file.originalname,
-          );
-
-          return this.imageRepository.save({
-            url: uploadResult.url,
-            filename: file.originalname,
-            imageable_id: id,
-            imageable_type: 'product',
-          });
-        });
-
-        await Promise.all(uploadPromises);
-      }
+    if (files && files.length > 0) {
+      await this.imageService.updateImagesForEntity(id, 'product', files);
     }
 
     await this.productRepository.update(id, {
@@ -446,13 +206,11 @@ export class ProductService {
     });
   }
 
-
   async sortProducts(
     limit: number,
     skip: number,
     sortBy: string,
     order: string,
-
   ): Promise<ProductListResponse> {
     const [listProducts, total] = await this.productRepository
       .createQueryBuilder('product')
@@ -462,36 +220,9 @@ export class ProductService {
       .limit(limit)
       .getManyAndCount();
 
-    const productIds = listProducts.map((p) => p.id);
-    const allImages = await this.imageRepository.findBy({
-      imageable_id: In(productIds),
-      imageable_type: 'product',
-    });
-
-    const imagesByProduct = allImages.reduce((acc, image) => {
-      if (!acc[image.imageable_id]) {
-        acc[image.imageable_id] = [];
-      }
-      acc[image.imageable_id].push(image);
-      return acc;
-    }, {});
-
-    const productsWithImages = await Promise.all(
-      listProducts.map(async (product) => {
-        const productImages = imagesByProduct[product.id] || [];
-        const imageUrl = await Promise.all(
-          productImages.map((image: ImageEntity) =>
-            CommonMethods.generateKeyImage(image, this.minioService),
-          ),
-        );
-
-        return {
-          ...product,
-          category: product?.category?.name,
-          image: imageUrl,
-          reviews: [],
-        };
-      }),
+    const productsWithImages = await this.mapProductsToResponse(
+      listProducts,
+      true,
     );
 
     return {
@@ -500,5 +231,73 @@ export class ProductService {
       limit,
       products: productsWithImages,
     };
+  }
+
+  async findProductById(id: number) {
+    const product = await this.productRepository.findOne({
+      where: { id: id },
+    });
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+    return product;
+  }
+
+  private async mapProductsToResponse(
+    listProducts: ProductEntity[],
+    includeReviews: boolean = true,
+  ): Promise<ProductResponse[]> {
+    if (listProducts.length === 0) {
+      return [];
+    }
+
+    const productIds = listProducts.map((p) => p.id);
+
+    const allImages = await this.imageService.findAllImagesByIds(
+      productIds,
+      'product',
+    );
+
+    const imagesByProduct = allImages.reduce(
+      (acc, image) => {
+        if (!acc[image.imageable_id]) {
+          acc[image.imageable_id] = [];
+        }
+        acc[image.imageable_id].push(image);
+        return acc;
+      },
+      {} as Record<number, ImageEntity[]>,
+    );
+
+    const productsWithMappedData = await Promise.all(
+      listProducts.map(async (product) => {
+        const productImages = imagesByProduct[product.id] || [];
+
+        const imageUrls = await Promise.all(
+          productImages.map((image) => image.url),
+        );
+
+        let mappedReviews: Review[] = [];
+        if (includeReviews && product.reviews) {
+          mappedReviews = product.reviews.map((r) => ({
+            id: r.id,
+            comment: r.comment,
+            rating: r.rating,
+            date: r.date,
+            reviewer_name: r.reviewer_name,
+            reviewer_email: r.reviewer_email,
+          }));
+        }
+
+        return {
+          ...product,
+          category: product?.category?.name,
+          image: imageUrls,
+          reviews: mappedReviews,
+        } as ProductResponse;
+      }),
+    );
+
+    return productsWithMappedData;
   }
 }
