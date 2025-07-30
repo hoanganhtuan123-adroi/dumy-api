@@ -2,13 +2,12 @@ import {
   PipeTransform,
   Injectable,
   ArgumentMetadata,
-  HttpStatus,
-  HttpException,
 } from '@nestjs/common';
 import { validate, ValidationError } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { ApiResponse } from '../bases/api.response';
 import 'reflect-metadata';
+import { ValidationException } from '../../exception/custom-exception';
 @Injectable()
 export class ValidationPipe implements PipeTransform<any> {
   async transform(value: any, { metatype }: ArgumentMetadata) {
@@ -16,13 +15,7 @@ export class ValidationPipe implements PipeTransform<any> {
       return value;
     }
     if (value === undefined || value === null) {
-      throw new HttpException(
-        ApiResponse.message(
-          'Request body is empty or invalid',
-          HttpStatus.BAD_REQUEST,
-        ),
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new ValidationException(2002)
     }
 
     const object = plainToInstance(metatype, value, {
@@ -31,15 +24,9 @@ export class ValidationPipe implements PipeTransform<any> {
 
     const errors = await validate(object);
     const formatErrors = this.formatError(errors);
-
     if (errors.length > 0) {
-      const response = ApiResponse.error(
-        formatErrors,
-        'Validation Failed',
-        HttpStatus.BAD_REQUEST,
-      );
-      console.error('Validation failed:', response);
-      throw new HttpException(response, HttpStatus.BAD_REQUEST);
+      console.error('Validation failed:', formatErrors);
+      throw new ValidationException(2002 , formatErrors )
     }
     return value;
   }

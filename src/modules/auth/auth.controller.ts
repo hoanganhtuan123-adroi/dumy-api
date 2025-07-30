@@ -3,13 +3,12 @@ import {
   Post,
   Body,
   Headers,
-  HttpStatus,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthRequest } from './dto/request/auth.request';
 import { ApiResponse } from '../../common/bases/api.response';
 import { RegisterAccountRequest } from './dto/request/register.request';
+import { AuthException } from '../../exception/custom-exception';
 
 @Controller('auth')
 export class AuthController {
@@ -18,7 +17,7 @@ export class AuthController {
   @Post('login')
   async login(@Body() authRequest: AuthRequest): Promise<ApiResponse> {
     const user = await this.authService.login(authRequest);
-    return ApiResponse.success(user, 'Login successfully', HttpStatus.CREATED);
+    return ApiResponse.success(user, 'Login successfully', 1000);
   }
 
   @Post('refresh-token')
@@ -26,13 +25,13 @@ export class AuthController {
     @Headers('x-refresh-token') refreshToken: string,
   ): Promise<ApiResponse> {
     if (!refreshToken) {
-      throw new UnauthorizedException('Missing refresh token');
+      throw new AuthException();
     }
     const accessToken = await this.authService.checkRefreshToken(refreshToken);
     return ApiResponse.success(
       accessToken,
       'Access token refreshed',
-      HttpStatus.OK,
+      1000,
     );
   }
 
@@ -41,6 +40,6 @@ export class AuthController {
     @Body() registerAccount: RegisterAccountRequest,
   ): Promise<ApiResponse> {
     await this.authService.register(registerAccount);
-    return ApiResponse.message('Register successfully', HttpStatus.CREATED);
+    return ApiResponse.message('Register successfully', 1000);
   }
 }

@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/mapped-types';
 import { Type, Transform } from 'class-transformer';
 import {
   IsDateString,
@@ -126,3 +127,6 @@ export class CreateUserDto {
   @Transform(({ value }) => value || 'user')
   role?: string = 'user';
 }
+
+
+export class UpdateUserDto extends PartialType(CreateUserDto){}

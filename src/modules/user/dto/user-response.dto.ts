@@ -1,4 +1,4 @@
-export interface IGetUserResponse {
+export interface IUserResponse {
   id:number;
   firstName: string;
   lastName: string;
@@ -7,7 +7,7 @@ export interface IGetUserResponse {
   email: string;
   phone: string;
   password: string;
-  birthDate: string;
+  birthDate: Date;
   height: number;
   weight: number;
   eyeColor: string;
@@ -24,9 +24,20 @@ export interface IGetUserResponse {
 }
 
 
-export interface IFilterUsersResponse {
+export interface IGetUsersResponse {
   total: number;
   skip: number;
   limit: number;
-  users: IGetUserResponse[];
+  users: IUserResponse[];
+}
+
+
+export interface IUserSingleResponse  {
+  user: IUserResponse;
+}
+
+
+export interface IDeleteUserResponse {
+  idDeleted: number;
+  deletedAt: Date;
 }

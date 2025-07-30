@@ -3,5 +3,6 @@ export enum ApiResponseKey {
   DATA = 'data',
   ERRORS = 'errors',
   MESSAGE = 'message',
+  CODE = 'code',
   TIMESTAMP = 'timestamp',
 }

@@ -1,4 +1,3 @@
-import { HttpStatus } from '@nestjs/common';
 import { ApiResponseKey } from '../../enums/apiResponse.key';
 
 export class ApiResponse {
@@ -8,12 +7,13 @@ export class ApiResponse {
   static success<T>(
     data: T,
     message: string,
-    status: HttpStatus = HttpStatus.OK,
+    code: number,
   ): Record<string, any> {
     return {
-      [ApiResponseKey.STATUS]: status,
+      [ApiResponseKey.STATUS]: 'success',
       [ApiResponseKey.MESSAGE]: message,
       [ApiResponseKey.DATA]: data,
+      [ApiResponseKey.CODE]: code,
       [ApiResponseKey.TIMESTAMP]: this.getTimestamp(),
     };
   }
@@ -21,23 +21,26 @@ export class ApiResponse {
   static error<T>(
     error: T,
     message: string,
-    status: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR,
+    code: number,
   ): Record<string, any> {
     return {
-      [ApiResponseKey.STATUS]: status,
+      [ApiResponseKey.STATUS]: 'error',
       [ApiResponseKey.MESSAGE]: message,
       [ApiResponseKey.ERRORS]: error,
+      [ApiResponseKey.CODE]: code,
       [ApiResponseKey.TIMESTAMP]: this.getTimestamp(),
     };
   }
 
   static message(
     message: string,
-    httpStatus: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR,
+    code: number,
+    status: string = 'success',
   ): Record<string, any> {
     return {
-      [ApiResponseKey.STATUS]: httpStatus,
+      [ApiResponseKey.STATUS]: status,
       [ApiResponseKey.MESSAGE]: message,
+      [ApiResponseKey.CODE]: code,
       [ApiResponseKey.TIMESTAMP]: this.getTimestamp(),
     };
   }

@@ -64,7 +64,7 @@ export class RecipeController {
     if (!data) throw new Error();
     return ApiResponse.message(
       'Create recipe successfully!',
-      HttpStatus.CREATED,
+      1000
     );
   }
 
@@ -107,7 +107,7 @@ export class RecipeController {
       userId,
       recipeId,
     );
-    return ApiResponse.message('Update successfully!', HttpStatus.OK);
+    return ApiResponse.message('Update successfully!', 1000);
   }
 
   @UseGuards(AuthGuard('jwt-access'))
@@ -120,7 +120,7 @@ export class RecipeController {
     const recipeId = Number(id);
     if (isNaN(recipeId)) throw new BadRequestException('Invalid recipe id');
     await this.recipeService.deleteRecipe(recipeId, userId);
-    return ApiResponse.message('Delete recipe successfully!', HttpStatus.OK);
+    return ApiResponse.message('Delete recipe successfully!', 1000);
   }
 
   @UseGuards(AuthGuard('jwt-admin'))
@@ -139,31 +139,31 @@ export class RecipeController {
       sortBy,
       order,
     );
-    return ApiResponse.success(data, 'Get all recipes  successfully!');
+    return ApiResponse.success(data, 'Get all recipes  successfully!', 1000);
   }
 
   @Get('meal-type/:key')
   async getReicpesByMealType(@Param('key') key: string) : Promise<ApiResponse> {
     const data = await this.recipeService.getReicpesByMealType(key);
-    return ApiResponse.success(data, 'Get recipes by meal type successfully!');
+    return ApiResponse.success(data, 'Get recipes by meal type successfully!', 1000);
   }
 
   @Get('search')
   async searchRecipes(@Query('q') q: string): Promise<ApiResponse> {
     const data = await this.recipeService.searchRecipes(q);
-    return ApiResponse.success(data, 'Get recipe successfully');
+    return ApiResponse.success(data, 'Get recipe successfully', 1000);
   }
 
   @Get('tags')
   async getAllRecipesTags(): Promise<ApiResponse> {
     const data = await this.recipeService.getAllRecipesTags();
-    return ApiResponse.success(data, 'Get all recipe tags successfully');
+    return ApiResponse.success(data, 'Get all recipe tags successfully', 1000);
   }
 
   @Get('tags/:tag')
   async getRecipesByTags(@Param('tag') tag: string): Promise<ApiResponse> {
     const data = await this.recipeService.getRecipesByTag(tag);
-    return ApiResponse.success(data, 'Get recipes by tag successfully');
+    return ApiResponse.success(data, 'Get recipes by tag successfully', 1000);
   }
 
   @Get(':id')
@@ -172,6 +172,6 @@ export class RecipeController {
     if (isNaN(recipeId))
       throw new BadRequestException('Recipe id is not valid');
     const data = await this.recipeService.getSingleRecipe(recipeId);
-    return ApiResponse.success(data, 'Get single recipe successfully!');
+    return ApiResponse.success(data, 'Get single recipe successfully!', 1000);
   }
 }

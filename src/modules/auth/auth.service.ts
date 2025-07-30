@@ -13,6 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { TokenEntity } from '../../models/token.entity';
 import { RegisterAccountRequest } from './dto/request/register.request';
 import * as bcrypt from 'bcrypt';
+import { ValidationException } from '../../exception/custom-exception';
 @Injectable()
 export class AuthService {
   constructor(
@@ -96,39 +97,35 @@ export class AuthService {
   }
 
   async checkRefreshToken(refreshToken: string) {
-    try {
-      const payload = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
-      });
+    const payload = this.jwtService.verify(refreshToken, {
+      secret: process.env.JWT_REFRESH_SECRET,
+    });
 
-      const userId = payload.sub;
+    const userId = payload.sub;
 
-      const tokenInDb = await this.tokenRepository.findOne({
-        where: {
-          user: { id: userId },
-          refreshToken: refreshToken,
-        },
-        relations: ['user'],
-      });
+    const tokenInDb = await this.tokenRepository.findOne({
+      where: {
+        user: { id: userId },
+        refreshToken: refreshToken,
+      },
+      relations: ['user'],
+    });
 
-      if (!tokenInDb) {
-        throw new UnauthorizedException('Refresh token is invalid or expired');
-      }
-      const newAccessToken = this.jwtService.sign(
-        {
-          sub: tokenInDb.user.id,
-          email: tokenInDb.user.email,
-          role: tokenInDb.user.role,
-        },
-        {
-          secret: process.env.JWT_ACCESS_SECRET,
-          expiresIn: '15m',
-        },
-      );
-      return newAccessToken;
-    } catch (error) {
-      throw new UnauthorizedException('Invalid refresh token');
+    if (!tokenInDb) {
+      throw new ValidationException(2001);
     }
+    const newAccessToken = this.jwtService.sign(
+      {
+        sub: tokenInDb.user.id,
+        email: tokenInDb.user.email,
+        role: tokenInDb.user.role,
+      },
+      {
+        secret: process.env.JWT_ACCESS_SECRET,
+        expiresIn: '15m',
+      },
+    );
+    return newAccessToken;
   }
 
   async register(registerRequest: RegisterAccountRequest) {
@@ -151,8 +148,9 @@ export class AuthService {
         throw new BadRequestException('Phone already exists!');
       }
     }
+    const salt = bcrypt.genSaltSync(10);
 
-    const hashedPassword = bcrypt.hashSync(registerRequest.password, 10);
+    const hashedPassword = bcrypt.hashSync(registerRequest.password, salt);
     registerRequest.password = hashedPassword;
 
     await this.userRepository.save(registerRequest);

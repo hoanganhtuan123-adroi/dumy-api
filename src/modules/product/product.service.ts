@@ -16,7 +16,7 @@ import {
   ProductListResponse,
   ProductResponse,
 } from './dto/response/get-product-dto';
-import CommonMethods from '../../common/bases/common-method';
+import CommonMethods from '../../utils/common-method';
 import { UpdateProductDto } from './dto/request/update-product.dto';
 import { Review } from '../review/dto/response/review-response.dto';
 import { ImageService } from '../image/image.service';

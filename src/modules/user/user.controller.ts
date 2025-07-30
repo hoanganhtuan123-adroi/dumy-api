@@ -16,14 +16,14 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/request/create-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiResponse } from '../../common/bases/api.response';
 import { storage } from '../../common/bases/oss';
 import * as path from 'path';
 import { ParseFormDataJsonPipe } from '../../common/pipes/parse.data.pipe';
 import { AuthGuard } from '@nestjs/passport';
-import { UpdateUserDto } from './dto/request/update-user.dto';
+import { UpdateUserDto, CreateUserDto } from './dto/user-request.dto';
+
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -36,12 +36,8 @@ export class UserController {
   ): Promise<ApiResponse> {
     const skipNum = parseInt(skip) || 0;
     const limitNum = parseInt(limit) || 10;
-    const listUsers = await this.userService.getUsers(skipNum, limitNum);
-    return ApiResponse.success(
-      listUsers,
-      'Get users successfully',
-      HttpStatus.OK,
-    );
+    const listUsers = await this.userService.getAllUsers(skipNum, limitNum);
+    return ApiResponse.success(listUsers, 'Get users successfully', 1000);
   }
 
   @UseGuards(AuthGuard('jwt-admin'))
@@ -63,7 +59,7 @@ export class UserController {
     if (listUsers?.total === 0) {
       return ApiResponse.message('No data', HttpStatus.OK);
     }
-    return ApiResponse.success(listUsers, 'Get users successfully!');
+    return ApiResponse.success(listUsers, 'Get users successfully!', 1000);
   }
 
   @UseGuards(AuthGuard('jwt-access'))
@@ -72,7 +68,7 @@ export class UserController {
     const userId = req.user['userId'];
     const user = await this.userService.getDetail(userId);
 
-    return ApiResponse.success(user, 'Get user successfully!', HttpStatus.OK);
+    return ApiResponse.success(user, 'Get user successfully!', 1000);
   }
 
   @UseGuards(AuthGuard('jwt-admin'))
@@ -80,7 +76,7 @@ export class UserController {
   async getDetailUser(@Param('userId') userId: number): Promise<ApiResponse> {
     const user = await this.userService.getDetail(userId);
 
-    return ApiResponse.success(user, 'Get user successfully!', HttpStatus.OK);
+    return ApiResponse.success(user, 'Get user successfully!', 1000);
   }
 
   @UseGuards(AuthGuard('jwt-admin'))
@@ -110,13 +106,9 @@ export class UserController {
         'File không hợp lệ! Chỉ chấp nhận: jpg, jpeg, png, gif',
       );
     }
-    const user = await this.userService.create(createUserDto, file);
+    const data = await this.userService.createUser(createUserDto, file);
 
-    return ApiResponse.success(
-      user,
-      'Create user successfully',
-      HttpStatus.CREATED,
-    );
+    return ApiResponse.success(data, 'Create user successfully', 1000);
   }
 
   @UseGuards(AuthGuard('jwt-access'))
@@ -141,16 +133,12 @@ export class UserController {
     @UploadedFile() file: Express.Multer.File,
   ): Promise<any> {
     const userId = req.user['userId'];
-    const updatedUser = await this.userService.update(
+    const updatedUser = await this.userService.updateUser(
       userId,
       updateUserDto,
       file,
     );
-    return ApiResponse.success(
-      updatedUser,
-      'Update successfully!',
-      HttpStatus.OK,
-    );
+    return ApiResponse.success(updatedUser, 'Update successfully!', 1000);
   }
 
   @UseGuards(AuthGuard('jwt-admin'))
@@ -174,18 +162,19 @@ export class UserController {
     @Body() updateUserDto: UpdateUserDto,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<ApiResponse> {
-    const updatedUser = await this.userService.update(id, updateUserDto, file);
-    return ApiResponse.success(
-      updatedUser,
-      'Update successfully!',
-      HttpStatus.OK,
+    const updatedUser = await this.userService.updateUser(
+      id,
+      updateUserDto,
+      file,
     );
+    return ApiResponse.success(updatedUser, 'Update successfully!', 1000);
   }
 
   @UseGuards(AuthGuard('jwt-admin'))
   @Delete(':id')
   async deleteUser(@Param('id') id: number): Promise<ApiResponse> {
-    await this.userService.delete(id);
-    return ApiResponse.message('Delete user successfully', HttpStatus.OK);
+    const data = await this.userService.deleteUser(id);
+    console.log(data);
+    return ApiResponse.success(data, 'Delete user successfully', 1000);
   }
 }

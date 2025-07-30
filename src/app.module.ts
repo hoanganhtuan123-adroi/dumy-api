@@ -23,6 +23,8 @@ import { TodoEntity } from './models/todo.entity';
 import { RecipeEntity } from './models/recipe.entity';
 import { RecipeModule } from './modules/recipe/recipe.module';
 import { CategoryModule } from './modules/category/category.module';
+import { PostModule } from './modules/post/post.module';
+import { PostEntity } from './models/post.entity';
 dotenv.config();
 @Module({
   imports: [
@@ -45,7 +47,8 @@ dotenv.config();
         CartEntity,
         CartItemEntity,
         TodoEntity,
-        RecipeEntity
+        RecipeEntity,
+        PostEntity
       ],
       synchronize: false,
     }),
@@ -59,6 +62,7 @@ dotenv.config();
     TodoModule,
     RecipeModule,
     CategoryModule,
+    PostModule,
   ],
   controllers: [AppController],
   providers: [AppService],
