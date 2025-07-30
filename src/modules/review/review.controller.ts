@@ -10,6 +10,6 @@ export class ReviewController {
   @Post()
   async addReview(@Body() reviewData: ReviewRequestDto) : Promise<ApiResponse> {
     await this.reviewService.addReview(reviewData);
-    return ApiResponse.message('Review added successfully', HttpStatus.CREATED);
+    return ApiResponse.message('Review added successfully', 1000);
   }
 }

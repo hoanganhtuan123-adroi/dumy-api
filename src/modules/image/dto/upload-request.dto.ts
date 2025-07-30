@@ -1,8 +1,8 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsOptional } from 'class-validator';
 
 export class UploadRequestDto {
-  @IsNotEmpty()
-  url: string;
+  @IsOptional()
+  url?: string;
   @IsNotEmpty()
   filename: string;
   @IsNotEmpty()

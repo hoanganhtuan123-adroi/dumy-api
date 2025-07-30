@@ -5,7 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CartEntity } from '../../models/cart.entity';
 import { CartItemEntity } from '../../models/cart-item.entity';
 import { ProductEntity } from '../../models/product.entity';
-import { MinioService } from '../../common/bases/minio.service';
+import { MinioService } from '../minio/minio.service';
 import { ImageEntity } from '../../models/image.entity';
 import { UserEntity } from '../../models/user.entity';
 

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ImageEntity } from '../../models/image.entity';
 import { In, Repository } from 'typeorm';
 import { UploadRequestDto } from './dto/upload-request.dto';
-import { MinioService } from '../../common/bases/minio.service';
+import { MinioService } from '../minio/minio.service';
 
 @Injectable()
 export class ImageService {
@@ -80,7 +80,32 @@ export class ImageService {
     return images;
   }
 
-   async findImageById(id: number, type: string) {
+  async getAllImages(
+    ids: number[],
+    type: string
+  ): Promise<Record<number, string[]>> {
+    if (type.length === 0) return {};
+
+    const allImages = await this.imageRepository.findBy({
+      imageable_id: In(ids),
+      imageable_type: type,
+    });
+
+    const images = allImages.reduce(
+      (acc, image) => {
+        if (!acc[image.imageable_id]) {
+          acc[image.imageable_id] = [];
+        }
+        acc[image.imageable_id].push(image.url);
+        return acc;
+      },
+      {} as Record<number, string[]>,
+    );
+
+    return images;
+  }
+
+  async findImageById(id: number, type: string) {
     const images = await this.imageRepository.findBy({
       imageable_id: id,
       imageable_type: type,
@@ -88,7 +113,7 @@ export class ImageService {
     return images;
   }
 
-  async deleteImage(id: number, type:string) {
+  async deleteImage(id: number, type: string) {
     const images = await this.imageRepository.findBy({
       imageable_id: id,
       imageable_type: type,

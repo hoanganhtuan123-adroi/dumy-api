@@ -18,7 +18,7 @@ import {
   PaginatedCartResponse,
 } from './dto/response/cart-response.dto';
 import { ImageEntity } from '../../models/image.entity';
-import CommonMethods from '../../common/bases/common-method';
+import CommonMethods from '../../utils/common-method';
 import { UserEntity } from '../../models/user.entity';
 import { UpdateCartRequestDto } from './dto/request/update-cart-request.dto';
 

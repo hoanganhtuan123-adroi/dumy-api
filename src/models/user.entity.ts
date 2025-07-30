@@ -11,6 +11,7 @@ import { TokenEntity } from './token.entity';
 import { CartEntity } from './cart.entity';
 import { TodoEntity } from './todo.entity';
 import { RecipeEntity } from './recipe.entity';
+import { PostEntity } from './post.entity';
 
 @Entity({ name: 'users' })
 export class UserEntity {
@@ -20,11 +21,14 @@ export class UserEntity {
   @OneToOne(() => TokenEntity, (token) => token.user)
   token: TokenEntity;
 
-  @OneToMany(()=>TodoEntity, todo => todo.user )
-  todo: TodoEntity
+  @OneToMany(() => TodoEntity, (todo) => todo.user)
+  todo: TodoEntity;
 
-  @OneToMany(()=>RecipeEntity, recipe => recipe.user)
+  @OneToMany(() => RecipeEntity, (recipe) => recipe.user)
   recipe: RecipeEntity;
+
+  @OneToMany(() => PostEntity, (post) => post.user)
+  post: PostEntity;
   
   @Column({ name: 'first_name' })
   firstName: string;
@@ -92,6 +96,6 @@ export class UserEntity {
   @Column()
   role: string;
 
-  @OneToOne(()=> CartEntity, (cart) => cart.user)
+  @OneToOne(() => CartEntity, (cart) => cart.user)
   cart: CartEntity;
 }
